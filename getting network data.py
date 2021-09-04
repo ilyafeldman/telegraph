@@ -1,4 +1,5 @@
 import requests as req , re , pandas as pd
+from pyvis.network import Network
 
 def connect(source):
     url = 'https://t.me/s/' + source
@@ -13,7 +14,7 @@ def targets(html , source):
     for target in regex.findall(html):
         target = target.rsplit('/' , 1)[1]
         if target.lower() != source.lower():
-            data.append([source, target])
+            data.append([source.lower(), target.lower()])
     edge_df = pd.DataFrame(data , columns=['source', 'target'])
     print('got targets from' , source)
     return edge_df
@@ -29,7 +30,7 @@ def subs (html , source):
         print('cant get subs for' , source)
     return
 
-# note: connect , targets and subs functions can be edited per social network
+# Note: connect , targets and subs functions can be edited per social network
 
 def convert_str_to_number(x):
     total_stars = 0
@@ -43,26 +44,58 @@ def convert_str_to_number(x):
 
 def finals(source):
     html = connect(source)
-    size = subs(html , source)
     edge_df = targets(html , source)
-    edge_df['source_node_size'] = size
+    if source[-3:].lower() != 'bot':
+        size = subs(html , source)
+        edge_df['source_node_size'] = size
     edge_df['edge_size'] = edge_df.groupby(['target'])['source'].transform('count')
     edge_df = edge_df.drop_duplicates(subset=['target'])
     print('passed finals for' , source)
     return edge_df
 
-def loop(df , i , start_channel_name):
-    final_df  = pd.DataFrame()
-    targets = df['target']
-    for target in targets:
-        edge_df = finals(target)
-        final_df = final_df.append(edge_df)
-        print('current length = ' , len(final_df))
-    final_df.to_csv(str(i) + ' iteration for ' + start_channel_name + '.csv')
-    i += 1
-    print('iteration' , i)
-    loop(final_df , i , start_channel_name)
+def loop(df , i , start_channel_name, iter_number):
+    iter = iter_number
+    if i < iter:
+      targets = df['target']
+      for target in targets:
+          edge_df = finals(target)
+          df = df.append(edge_df)
+          print('current length = ' , len(df))
+      if i+1==iter:
+        df.to_csv('{} iteration for {}.csv'.format(str(i+1),start_channel_name))
+      i += 1
+      print('iteration' , i)
+      loop(df , i , start_channel_name, iter)
+      return
+    else: return "finished"
+
+channel_name = input("Enter the channel name: ")
+iterations_number = int(input("Enter the number of iterations: "))
+loop(finals(channel_name) , 0 , channel_name, iterations_number)
+
+def create_graph(iterations_number , channel_name):
+
+    got_net = Network(height='750px', width='100%', bgcolor='#222222', font_color='whitw')
+
+    edge_df = pd.read_csv('{} iteration for {}.csv'.format(str(iterations_number), channel_name))
+
+    edge_data = zip(edge_df['source'], edge_df['target'], edge_df['edge_size'] , edge_df['source_node_size'])
+
+    for row in edge_data:
+        src = row[0]
+        trgt = row[1]
+        w = row[2]
+        size = row[3]
+        
+        source_node_link = "<a href=\'http://t.me/s/" + src + "'>" + src + "</a>"
+        target_node_link = "<a href=\'http://t.me/s/" + trgt + "'>" + trgt + "</a>"
+        
+        got_net.add_node(src, src, title=source_node_link , value=size)
+        got_net.add_node(trgt, trgt, title=target_node_link , value=size/10)
+        got_net.add_edge(src, trgt, value=w)
+
+    got_net.show_buttons()
+    got_net.show('{} iteration for {}.html'.format(str(iterations_number),channel_name))
     return
 
-channel_name = input()
-loop(finals(channel_name) , 0 , channel_name)
+create_graph(iterations_number , channel_name)
