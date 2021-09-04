@@ -54,8 +54,7 @@ def finals(source):
     return edge_df
 
 def loop(df , i , start_channel_name, iter_number):
-    iter = iter_number
-    if i < iter:
+    if i < iter_number:
       targets = df['target']
       for target in targets:
           edge_df = finals(target)
