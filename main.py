@@ -54,18 +54,22 @@ def finals(source):
     return edge_df
 
 def loop(df , i , start_channel_name, iter_number):
-    if i < iter_number:
-      targets = df['target']
-      for target in targets:
-          edge_df = finals(target)
-          df = df.append(edge_df)
-          print('current length = ' , len(df))
-      if i+1==iter:
-        df.to_csv('{} iteration for {}.csv'.format(str(i+1),start_channel_name))
-      i += 1
-      print('iteration' , i)
-      loop(df , i , start_channel_name, iter)
-      return
+    iter = iter_number
+    if i < iter:
+        targets = df['target']
+        for target in targets:
+            if target not in df['source'].values:
+                edge_df = finals(target)
+                df = df.append(edge_df)
+                print('current length = ' , len(df))
+            else:
+                print('duplicate')
+        if i+1==iter:
+            df.to_csv('{} iteration for {}.csv'.format(str(i+1),start_channel_name))
+        i += 1
+        print('iteration' , i)
+        loop(df , i , start_channel_name, iter)
+        return
     else: return "finished"
 
 def create_graph(iterations_number , channel_name):
