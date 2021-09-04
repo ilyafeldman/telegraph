@@ -73,26 +73,29 @@ channel_name = input("Enter the channel name: ")
 iterations_number = int(input("Enter the number of iterations: "))
 loop(finals(channel_name) , 0 , channel_name, iterations_number)
 
-got_net = Network(height='750px', width='100%', bgcolor='#222222', font_color='whitw')
+def create_graph(iterations_number , channel_name):
 
-# Defining data for the graph
+    got_net = Network(height='750px', width='100%', bgcolor='#222222', font_color='whitw')
 
-edge_df = pd.read_csv('{} iteration for {}.csv'.format(str(iterations_number), channel_name))
+    edge_df = pd.read_csv('{} iteration for {}.csv'.format(str(iterations_number), channel_name))
 
-edge_data = zip(edge_df['source'], edge_df['target'], edge_df['edge_size'] , edge_df['source_node_size'])
+    edge_data = zip(edge_df['source'], edge_df['target'], edge_df['edge_size'] , edge_df['source_node_size'])
 
-for row in edge_data:
-    src = row[0]
-    trgt = row[1]
-    w = row[2]
-    size = row[3]
-    
-    source_node_link = "<a href=\'http://t.me/s/" + src + "'>" + src + "</a>"
-    target_node_link = "<a href=\'http://t.me/s/" + trgt + "'>" + trgt + "</a>"
-    
-    got_net.add_node(src, src, title=source_node_link , value=size)
-    got_net.add_node(trgt, trgt, title=target_node_link , value=size/10)
-    got_net.add_edge(src, trgt, value=w)
+    for row in edge_data:
+        src = row[0]
+        trgt = row[1]
+        w = row[2]
+        size = row[3]
+        
+        source_node_link = "<a href=\'http://t.me/s/" + src + "'>" + src + "</a>"
+        target_node_link = "<a href=\'http://t.me/s/" + trgt + "'>" + trgt + "</a>"
+        
+        got_net.add_node(src, src, title=source_node_link , value=size)
+        got_net.add_node(trgt, trgt, title=target_node_link , value=size/10)
+        got_net.add_edge(src, trgt, value=w)
 
-got_net.show_buttons()
-got_net.show('{} iteration for {}.html'.format(str(iterations_number),channel_name))
+    got_net.show_buttons()
+    got_net.show('{} iteration for {}.html'.format(str(iterations_number),channel_name))
+    return
+
+create_graph(iterations_number , channel_name)
