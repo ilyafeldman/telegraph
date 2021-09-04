@@ -5,7 +5,7 @@ def connect(source):
     url = 'https://t.me/s/' + source
     request = req.get(url)
     html = request.text
-    print('connected to' , source)
+    print('connect' , source)
     return html
 
 def targets(html , source):
@@ -16,7 +16,7 @@ def targets(html , source):
         if target.lower() != source.lower():
             data.append([source.lower(), target.lower()])
     edge_df = pd.DataFrame(data , columns=['source', 'target'])
-    print('got targets from' , source)
+    print('targets' , source)
     return edge_df
 
 def subs (html , source):
@@ -24,10 +24,10 @@ def subs (html , source):
     try:
         string = regex.findall(html)[0]
         number = convert_str_to_number(string.rsplit('>' , 1)[1])
-        print('got ' , number ,  'subs from ' , source)
+        print('subs1' , source , number)
         return number
     except:
-        print('cant get subs for' , source)
+        print('subs0' , source)
     return
 
 # Note: connect , targets and subs functions can be edited per social network
@@ -50,7 +50,7 @@ def finals(source):
         edge_df['source_node_size'] = size
     edge_df['edge_size'] = edge_df.groupby(['target'])['source'].transform('count')
     edge_df = edge_df.drop_duplicates(subset=['target'])
-    print('passed finals for' , source)
+    print('finals' , source)
     return edge_df
 
 def loop(df , i , start_channel_name, iter_number):
@@ -60,7 +60,7 @@ def loop(df , i , start_channel_name, iter_number):
       for target in targets:
           edge_df = finals(target)
           df = df.append(edge_df)
-          print('current length = ' , len(df))
+          print('length' , len(df))
       if i+1==iter:
         df.to_csv('{} iteration for {}.csv'.format(str(i+1),start_channel_name))
       i += 1
