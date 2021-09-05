@@ -81,7 +81,10 @@ def create_graph(iterations_number , channel_name):
         source_node_link = "<a href=\'http://t.me/s/" + src + "'>" + src + "</a>"
         target_node_link = "<a href=\'http://t.me/s/" + trgt + "'>" + trgt + "</a>"
         got_net.add_node(src, src, title=source_node_link , value=size)
-        got_net.add_node(trgt, trgt, title=target_node_link , value=size/10)
+        if trgt[-3:].lower() == 'bot':
+            got_net.add_node(trgt, trgt, title=target_node_link , value=size/10 , shape='triangle')
+        else:
+            got_net.add_node(trgt, trgt, title=target_node_link , value=size/10)
         got_net.add_edge(src, trgt, value=w)
     got_net.show_buttons()
     got_net.show('{} iteration for {}.html'.format(str(iterations_number),channel_name))
