@@ -54,14 +54,18 @@ def finals(source):
     return edge_df
 
 def loop(df , i , start_channel_name, iter_number):
+    exception_list = ['durov', 'username', 'telegram', 'communityrules', 'jobsbot', 'antiscam', 'tandroidapk', 'botfather', 'quizbot']
     iter = iter_number
     if i < iter:
         targets = df['target']
         for target in targets:
             if target not in df['source'].values:
-                edge_df = finals(target)
-                df = df.append(edge_df)
-                print('length' , len(df))
+                if target not in exception_list:
+                    edge_df = finals(target)
+                    df = df.append(edge_df)
+                    print('length' , len(df))
+                else:
+                    print('exception' , target)
             else:
                 print('duplicate')
         if i+1==iter:
