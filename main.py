@@ -10,11 +10,15 @@ def connect(source):
 
 def targets(html , source):
     regex = re.compile(r'href=.https://t.me/\w+')
+    exception_list = ['durov', 'username', 'telegram', 'communityrules', 'jobsbot', 'antiscam', 'tandroidapk', 'botfather', 'quizbot']
     data = []
     for target in regex.findall(html):
         target = target.rsplit('/' , 1)[1]
         if target.lower() != source.lower():
-            data.append([source.lower(), target.lower()])
+            if target not in exception_list:
+                data.append([source.lower(), target.lower()])
+            else:
+                print('exception')
     edge_df = pd.DataFrame(data , columns=['source', 'target'])
     print('targets' , source)
     return edge_df
