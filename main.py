@@ -74,15 +74,15 @@ def loop(df , i , start_channel_name, iter_number):
                 print('duplicate')
         if i+1==iter:
             df.to_csv('{} iteration for {}.csv'.format(str(i+1),start_channel_name))
+            return df
         i += 1
         print('iteration' , i)
         loop(df , i , start_channel_name, iter)
         return
     else: return "finished"
 
-def create_graph(iterations_number , channel_name):
+def create_graph(edge_df , iterations_number , channel_name):
     got_net = Network(height='750px', width='100%', bgcolor='#222222', font_color='whitw')
-    edge_df = pd.read_csv('{} iteration for {}.csv'.format(str(iterations_number), channel_name))
     edge_data = zip(edge_df['source'], edge_df['target'], edge_df['edge_size'] , edge_df['source_node_size'])
     for row in edge_data:
         src , trgt , w , size = [row[i] for i in (0,1,2,3)]
@@ -96,10 +96,11 @@ def create_graph(iterations_number , channel_name):
         got_net.add_edge(src, trgt, value=w)
     got_net.show_buttons()
     got_net.show('{} iteration for {}.html'.format(str(iterations_number),channel_name))
+    print('graph ready')
     return
 
 channel_name = input("Enter the channel name: ")
 iterations_number = int(input("Enter the number of iterations: "))
 
-loop(finals(channel_name) , 0 , channel_name, iterations_number)
-create_graph(iterations_number , channel_name)
+df = loop(finals(channel_name) , 0 , channel_name, iterations_number)
+create_graph(df , iterations_number , channel_name)
