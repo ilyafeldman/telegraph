@@ -15,7 +15,7 @@ def targets(html , source):
     for target in regex.findall(html):
         target = target.rsplit('/' , 1)[1]
         if target.lower() != source.lower():
-            if target not in exception_list:
+            if target.lower() not in exception_list:
                 data.append([source.lower(), target.lower()])
             else:
                 print('exception')
