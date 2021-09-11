@@ -64,7 +64,7 @@ def loop(df , i , start_channel_name, iter_number):
         targets = df['target']
         for target in targets:
             if target not in df['source'].values:
-                if target not in exception_list:
+                if target.lower() not in exception_list:
                     edge_df = finals(target)
                     df = df.append(edge_df)
                     print('length' , len(df))
