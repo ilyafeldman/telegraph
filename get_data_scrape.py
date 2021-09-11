@@ -1,5 +1,7 @@
 import requests as req , re , pandas as pd
 
+exception_list = ['durov', 'username', 'telegram', 'communityrules', 'jobsbot', 'antiscam', 'tandroidapk', 'botfather', 'quizbot']
+
 def connect(source):
     url = 'https://t.me/s/' + source
     request = req.get(url)
@@ -9,7 +11,6 @@ def connect(source):
 
 def targets(html , source):
     regex = re.compile(r'href=.https://t.me/\w+')
-    exception_list = ['durov', 'username', 'telegram', 'communityrules', 'jobsbot', 'antiscam', 'tandroidapk', 'botfather', 'quizbot']
     data = []
     for target in regex.findall(html):
         target = target.rsplit('/' , 1)[1]
@@ -22,7 +23,7 @@ def targets(html , source):
     print('targets' , source)
     return edge_df
 
-def subs (html , source):
+def size(html , source):
     regex = re.compile(r'class=.counter_value.>[^<]+')
     try:
         string = regex.findall(html)[0]
@@ -33,7 +34,7 @@ def subs (html , source):
         print('subs_skip' , source)
     return
 
-# Note: connect , targets and subs functions can be edited per social network
+# Note: connect , targets and size functions can be edited per social network
 
 def convert_str_to_number(x):
     total_stars = 0
@@ -45,26 +46,25 @@ def convert_str_to_number(x):
             total_stars = float(x[:-1]) * num_map.get(x[-1].upper(), 1)
     return int(total_stars)
 
-def finals(source):
+def first_run(source):
     html = connect(source)
     edge_df = targets(html , source)
     if source[-3:].lower() != 'bot':
-        size = subs(html , source)
+        size = size(html , source)
         edge_df['source_node_size'] = size
     edge_df['edge_size'] = edge_df.groupby(['target'])['source'].transform('count')
     edge_df = edge_df.drop_duplicates(subset=['target'])
-    print('finals' , source)
+    print('first_run' , source)
     return edge_df
 
 def loop(df , i , start_channel_name, iter_number):
-    exception_list = ['durov', 'username', 'telegram', 'communityrules', 'jobsbot', 'antiscam', 'tandroidapk', 'botfather', 'quizbot']
     iter = iter_number
     if i < iter:
         targets = df['target']
         for target in targets:
             if target not in df['source'].values:
                 if target.lower() not in exception_list:
-                    edge_df = finals(target)
+                    edge_df = first_run(target)
                     df = df.append(edge_df)
                     print('length' , len(df))
                 else:
