@@ -23,7 +23,7 @@ def targets(html , source):
     print('targets' , source)
     return edge_df
 
-def size(html , source):
+def getsize(html , source):
     regex = re.compile(r'class=.counter_value.>[^<]+')
     try:
         string = regex.findall(html)[0]
@@ -50,7 +50,7 @@ def first_run(source):
     html = connect(source)
     edge_df = targets(html , source)
     if source[-3:].lower() != 'bot':
-        size = size(html , source)
+        size = getsize(html , source)
         edge_df['source_node_size'] = size
     edge_df['edge_size'] = edge_df.groupby(['target'])['source'].transform('count')
     edge_df = edge_df.drop_duplicates(subset=['target'])
