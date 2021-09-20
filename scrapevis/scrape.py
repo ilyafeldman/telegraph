@@ -1,4 +1,6 @@
-import requests as req , re , pandas as pd
+import requests as req , re , pandas as pd , time
+from bs4 import BeautifulSoup
+from selenium import webdriver
 
 exception_list = ['durov', 'username', 'telegram', 'communityrules', 'jobsbot', 'antiscam', 'tandroidapk', 'botfather', 'quizbot']
 
@@ -45,6 +47,28 @@ def convert_str_to_number(x):
         if len(x) > 1:
             total_stars = float(x[:-1]) * num_map.get(x[-1].upper(), 1)
     return int(total_stars)
+
+def get_text(html):
+    soup = BeautifulSoup(html, 'html.parser')
+    texts = soup.find_all(class_= ['tgme_widget_message_text' , 'js-message_text' , 'before_footer'])
+    cleantexts = []
+    for dirtytext in texts:
+        cleanr = re.compile('<.*?>')
+        cleantext = re.sub(cleanr, '', str(dirtytext))
+        cleantexts.append(cleantext)
+    print(len(cleantexts))
+
+def scroller(source):
+    driver = webdriver.Chrome(executable_path=r'/Users/ilyafeldman/Desktop/Coding/chromedriver')
+    driver.get("https://t.me/s/" + source)
+    time.sleep(2)
+    ScrollNumber = 10
+    for i in range(1,ScrollNumber):
+        driver.execute_script("window.scrollTo(50000,1)")
+        time.sleep(1)
+    html = driver.page_source
+    print(len(html))
+    return html
 
 def first_run(source):
     html = connect(source)
