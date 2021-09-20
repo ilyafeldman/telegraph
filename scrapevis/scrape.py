@@ -1,4 +1,4 @@
-import requests as req , re , pandas as pd , time
+import requests as req , re , pandas as pd , time , config
 from bs4 import BeautifulSoup
 from selenium import webdriver
 
@@ -59,7 +59,7 @@ def get_text(html):
     print(len(cleantexts))
 
 def scroller(source , scrolls):
-    driver = webdriver.Chrome(executable_path=r'/Users/ilyafeldman/Desktop/Coding/chromedriver')
+    driver = webdriver.Chrome(config.executable_path)
     driver.get("https://t.me/s/" + source)
     time.sleep(2)
     for i in range(1,scrolls):
