@@ -85,10 +85,3 @@ def get_data(channel_name , total_messages , iterations_number):
     looped_edges = loop(channel_edge_df , 0 , channel_name , iterations_number , total_messages)
     print(looped_edges)
     return looped_edges
-
-
-channel_name = input('channel name: ')
-total_messages = int(input('total messages: '))
-iterations_number = int(input("Enter the number of iterations: "))
-
-get_data(channel_name , total_messages , iterations_number)
