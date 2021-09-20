@@ -56,7 +56,6 @@ def get_text(html):
         cleanr = re.compile('<.*?>')
         cleantext = re.sub(cleanr, '', str(dirtytext))
         cleantexts.append(cleantext)
-    print(len(cleantexts))
 
 def scroller(source , scrolls):
     driver = webdriver.Chrome(config.executable_path)
@@ -66,32 +65,36 @@ def scroller(source , scrolls):
         driver.execute_script("window.scrollTo(50000,1)")
         time.sleep(1)
         soup = BeautifulSoup(driver.page_source, 'html.parser')
-        end_check = soup.find(class_= ['tgme_widget_message_text' , 'js-message_text' , 'before_footer']).text 
-        if end_check == 'Channel created':
+        try:
+            end_check = soup.find(class_= ['tgme_widget_message_text' , 'js-message_text' , 'before_footer']).text 
+            if end_check == 'Channel created':
+                break
+        except:
             break
     html = driver.page_source
-    print(len(html))
     return html
 
 def first_run(source , scrolls):
-    html = scroller(source , scrolls)
-    edge_df = targets(html , source)
     if source[-3:].lower() != 'bot':
+        html = scroller(source , scrolls)
+        edge_df = targets(html , source)
         size = getsize(html , source)
         edge_df['source_node_size'] = size
-    edge_df['edge_size'] = edge_df.groupby(['target'])['source'].transform('count')
-    edge_df = edge_df.drop_duplicates(subset=['target'])
-    print('first_run' , source)
-    return edge_df
+    #edge_df['edge_size'] = edge_df.groupby(['target'])['source'].transform('count')
+    #edge_df = edge_df.drop_duplicates(subset=['target'])
+        print('first_run' , source)
+        return edge_df
+    else:
+        pass
 
-def loop(df , i , start_channel_name, iter_number):
+def loop(df , i , start_channel_name, iter_number , scrolls):
     iter = iter_number
     if i < iter:
         targets = df['target']
         for target in targets:
             if target not in df['source'].values:
                 if target.lower() not in exception_list:
-                    edge_df = first_run(target)
+                    edge_df = first_run(target , scrolls)
                     df = df.append(edge_df)
                     print('length' , len(df))
                 else:

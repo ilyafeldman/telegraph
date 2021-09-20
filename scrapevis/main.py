@@ -6,4 +6,4 @@ channel_name = input('Enter the channel name: ')
 iterations_number = int(input('Enter the number of iterations: '))
 scrolls = int(input('Enter number of page scrolls (more is better, but takes longer): '))
 
-create_graph(loop(first_run(channel_name , scrolls) , 0 , channel_name, iterations_number) , iterations_number , channel_name)
+create_graph(loop(first_run(channel_name , scrolls) , 0 , channel_name, iterations_number , scrolls) , iterations_number , channel_name)
