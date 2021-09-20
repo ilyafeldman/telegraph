@@ -102,6 +102,8 @@ def loop(df , i , start_channel_name, iter_number , scrolls):
             else:
                 print('duplicate')
         if i+1==iter:
+            df = df.dropna(inplace = True)
+            df = df.replace(r'^s*$', float('NaN'), regex = True)
             df.to_csv('{} iteration for {}.csv'.format(str(i+1),start_channel_name))
             return df
         i += 1
