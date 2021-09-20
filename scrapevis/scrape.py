@@ -58,20 +58,19 @@ def get_text(html):
         cleantexts.append(cleantext)
     print(len(cleantexts))
 
-def scroller(source):
+def scroller(source , scrolls):
     driver = webdriver.Chrome(executable_path=r'/Users/ilyafeldman/Desktop/Coding/chromedriver')
     driver.get("https://t.me/s/" + source)
     time.sleep(2)
-    ScrollNumber = 10
-    for i in range(1,ScrollNumber):
+    for i in range(1,scrolls):
         driver.execute_script("window.scrollTo(50000,1)")
         time.sleep(1)
     html = driver.page_source
     print(len(html))
     return html
 
-def first_run(source):
-    html = connect(source)
+def first_run(source , scrolls):
+    html = scroller(source , scrolls)
     edge_df = targets(html , source)
     if source[-3:].lower() != 'bot':
         size = getsize(html , source)
