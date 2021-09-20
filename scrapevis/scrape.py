@@ -65,6 +65,10 @@ def scroller(source , scrolls):
     for i in range(1,scrolls):
         driver.execute_script("window.scrollTo(50000,1)")
         time.sleep(1)
+        soup = BeautifulSoup(driver.page_source, 'html.parser')
+        end_check = soup.find(class_= ['tgme_widget_message_text' , 'js-message_text' , 'before_footer']).text 
+        if end_check == 'Channel created':
+            break
     html = driver.page_source
     print(len(html))
     return html
