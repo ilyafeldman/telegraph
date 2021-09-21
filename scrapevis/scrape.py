@@ -126,3 +126,9 @@ def get_views(soup): #used in get_message_info
     message_views = soup.find(class_= 'tgme_widget_message_views').text
     message_views = convert_str_to_number(message_views)
     return message_views
+
+def get_data(source , total_messages):
+    html = connect(source)
+    url , last_id = last_message_url(html , source)
+    data_df = get_message_info(url , last_id , total_messages)
+    return data_df
