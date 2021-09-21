@@ -1,4 +1,5 @@
-import requests as req , re , pandas as pd
+import requests as req , re , pandas as pd , aiohttp , asyncio
+from tqdm.asyncio import trange, tqdm
 from tqdm import tqdm
 from bs4 import BeautifulSoup
 
@@ -93,27 +94,6 @@ def last_message_url(html , source): # returns url info needed to iterate on mes
     url = url[1 : : ]
     return url , last_id
 
-def get_message_info(url , last_id , limit): # returns message data
-    limit = last_id - limit
-    if limit < 1:
-        limit = 1
-    message_data = []
-    for i in tqdm(range(last_id , limit , -1)):
-        url2 = url + str(i) + '?embed=1'
-        request = req.get(url2)
-        html = request.text.lower()
-        soup = BeautifulSoup(html, 'html.parser')
-        try:
-            text = get_text(soup)
-        except:
-            text = 'NaN'
-        date = get_date(soup)
-        views = get_views(soup)
-        message_data.append([url2 , text , date , views])
-    data_df = pd.DataFrame(message_data , columns=['link' , 'text' , 'date' , 'views'])
-    data_df = data_df.drop_duplicates(subset='text')
-    return data_df
-
 def get_text(soup): #used in get_message_info
     try:
         message_text = soup.find(class_= ['tgme_widget_message_text' , 'js-message_text']).text
@@ -123,17 +103,57 @@ def get_text(soup): #used in get_message_info
     return message_text
 
 def get_date(soup): #used in get_message_info
-    message_date = soup.find('time' , class_ = 'datetime')
-    message_date = message_date['datetime']
+    try:
+        message_date = soup.find('time' , class_ = 'datetime')
+        message_date = message_date['datetime']
+    except:
+        message_date = 'NaN'
     return message_date
 
 def get_views(soup): #used in get_message_info
-    message_views = soup.find(class_= 'tgme_widget_message_views').text
-    message_views = convert_str_to_number(message_views)
+    try:
+        message_views = soup.find(class_= 'tgme_widget_message_views').text
+        message_views = convert_str_to_number(message_views)
+    except:
+        message_views = "NaN"
     return message_views
 
-def get_data(source , total_messages):
-    html = connect(source)
-    url , last_id = last_message_url(html , source)
-    data_df = get_message_info(url , last_id , total_messages)
-    return data_df
+def link_list(url , last_id , limit):
+    limit = last_id - limit
+    if limit < 1:
+        limit = 1
+    links = []
+    for i in range(last_id , limit , -1):
+        url2 = url + str(i) + '?embed=1'
+        links.append(url2)
+    return links
+
+async def get_message_info(url , session):
+    message_data = []
+    async with session.get(url , ssl=False) as response:
+        html = await response.text()
+    soup = BeautifulSoup(html, 'html.parser')
+    try:
+        text = get_text(soup)
+    except:
+        text = 'NaN'
+    date = get_date(soup)
+    views = get_views(soup)
+    message_data.append([url , text , date , views])
+    return message_data
+
+async def get_data(source , limit):
+    url , last_id = last_message_url(connect(source) , source)
+    links = link_list(url , last_id , limit)
+    async with aiohttp.ClientSession() as session:
+        tasks = []
+        for link in links:
+            task = asyncio.ensure_future(get_message_info(link , session))
+            tasks.append(task)
+        messages_data = await asyncio.gather(*tasks)
+    messages_data = [val for sublist in messages_data for val in sublist]
+    data_df = pd.DataFrame(messages_data , columns=['link' , 'text' , 'date' , 'views'])
+    data_df = data_df.drop_duplicates(subset='text')
+    print(data_df)
+
+asyncio.run(get_data('sputniknewsint' , 200))
