@@ -1,5 +1,4 @@
-from numpy import source
-import requests as req , re , pandas as pd , time , config
+import requests as req , re , pandas as pd
 from tqdm import tqdm
 from bs4 import BeautifulSoup
 
