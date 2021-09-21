@@ -1,17 +1,18 @@
+from numpy import source
 import requests as req , re , pandas as pd , time , config
+from tqdm import tqdm
 from bs4 import BeautifulSoup
-from selenium import webdriver
 
 exception_list = ['durov', 'username', 'telegram', 'communityrules', 'jobsbot', 'antiscam', 'tandroidapk', 'botfather', 'quizbot']
 
-def connect(source):
+def connect(source): # returns an html page of a channel
     url = 'https://t.me/s/' + source
     request = req.get(url)
-    html = request.text
+    html = request.text.lower()
     print('connect' , source)
     return html
 
-def targets(html , source):
+def targets(html , source): # returns a source-target dataframe per channel
     regex = re.compile(r'href=.https://t.me/\w+')
     data = []
     for target in regex.findall(html):
@@ -25,7 +26,7 @@ def targets(html , source):
     print('targets' , source)
     return edge_df
 
-def getsize(html , source):
+def getsize(html , source): #returns a number of subscribers of a channel 
     regex = re.compile(r'class=.counter_value.>[^<]+')
     try:
         string = regex.findall(html)[0]
@@ -36,9 +37,7 @@ def getsize(html , source):
         print('subs_skip' , source)
     return
 
-# Note: connect , targets and size functions can be edited per social network
-
-def convert_str_to_number(x):
+def convert_str_to_number(x): # converts a '9.0K' type string to '9000' integer
     total_stars = 0
     num_map = {'K':1000, 'M':1000000, 'B':1000000000}
     if x.isdigit():
@@ -48,35 +47,9 @@ def convert_str_to_number(x):
             total_stars = float(x[:-1]) * num_map.get(x[-1].upper(), 1)
     return int(total_stars)
 
-def get_text(html):
-    soup = BeautifulSoup(html, 'html.parser')
-    texts = soup.find_all(class_= ['tgme_widget_message_text' , 'js-message_text' , 'before_footer'])
-    cleantexts = []
-    for dirtytext in texts:
-        cleanr = re.compile('<.*?>')
-        cleantext = re.sub(cleanr, '', str(dirtytext))
-        cleantexts.append(cleantext)
-
-def scroller(source , scrolls):
-    driver = webdriver.Chrome(config.executable_path)
-    driver.get("https://t.me/s/" + source)
-    time.sleep(2)
-    for i in range(1,scrolls):
-        driver.execute_script("window.scrollTo(50000,1)")
-        time.sleep(1)
-        soup = BeautifulSoup(driver.page_source, 'html.parser')
-        try:
-            end_check = soup.find(class_= ['tgme_widget_message_text' , 'js-message_text' , 'before_footer']).text 
-            if end_check == 'Channel created':
-                break
-        except:
-            break
-    html = driver.page_source
-    return html
-
-def first_run(source , scrolls):
+def first_run(source , scrolls): # actually runs the functions needed for first cirlce targets
     if source[-3:].lower() != 'bot':
-        html = scroller(source , scrolls)
+        html = connect(source , scrolls)
         edge_df = targets(html , source)
         size = getsize(html , source)
         edge_df['source_node_size'] = size
@@ -87,7 +60,7 @@ def first_run(source , scrolls):
     else:
         pass
 
-def loop(df , i , start_channel_name, iter_number , scrolls):
+def loop(df , i , start_channel_name, iter_number , scrolls): # runs n cirles per channel
     iter = iter_number
     if i < iter:
         targets = df['target']
@@ -111,3 +84,51 @@ def loop(df , i , start_channel_name, iter_number , scrolls):
         loop(df , i , start_channel_name, iter)
         return df
     else: return df
+
+def last_message_url(html , source): # returns url info needed to iterate on messages in a channel
+    url = 'href="https://t.me/' + source +'/'
+    regex = re.escape(url) + r'\d+'
+    last_id_link = re.findall(regex , html)[-1]
+    last_id = int(last_id_link.rsplit('/' , 1)[1])
+    url = url.strip('href=')
+    url = url[1 : : ]
+    return url , last_id
+
+def get_message_info(url , last_id , limit): # returns message data
+    limit = last_id - limit
+    if limit < 1:
+        limit = 1
+    message_data = []
+    for i in tqdm(range(last_id , limit , -1)):
+        url2 = url + str(i) + '?embed=1'
+        request = req.get(url2)
+        html = request.text.lower()
+        soup = BeautifulSoup(html, 'html.parser')
+        text = get_text(soup)
+        date = get_date(soup)
+        views = get_views(soup)
+        message_data.append([url2 , text , date , views])
+    data_df = pd.DataFrame(message_data , columns=['link' , 'text' , 'date' , 'views'])
+    data_df = data_df.drop_duplicates(subset='text')
+    return data_df
+
+def get_text(soup): #used in get_message_info
+    message_text = soup.find(class_= ['tgme_widget_message_text' , 'js-message_text']).text
+    message_text = str(message_text).replace('\n', ' ')
+    return message_text
+
+def get_date(soup): #used in get_message_info
+    message_date = soup.find('time' , class_ = 'datetime')
+    message_date = message_date['datetime']
+    return message_date
+
+def get_views(soup): #used in get_message_info
+    message_views = soup.find(class_= 'tgme_widget_message_views').text
+    message_views = convert_str_to_number(message_views)
+    return message_views
+
+source = 'sputniknewsint'
+html = connect(source)
+url , last_id = last_message_url(html , source)
+data_df = get_message_info(url , last_id , 100)
+print(data_df)
