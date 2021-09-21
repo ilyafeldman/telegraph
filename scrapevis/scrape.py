@@ -116,7 +116,10 @@ def get_message_info(url , last_id , limit): # returns message data
 
 def get_text(soup): #used in get_message_info
     message_text = soup.find(class_= ['tgme_widget_message_text' , 'js-message_text']).text
-    message_text = str(message_text).replace('\n', ' ')
+    if message_text == 'None':
+        message_text = str(message_text).replace('\n', ' ')
+    else:
+        message_text = "NaN"
     return message_text
 
 def get_date(soup): #used in get_message_info
