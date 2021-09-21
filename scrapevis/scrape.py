@@ -103,7 +103,10 @@ def get_message_info(url , last_id , limit): # returns message data
         request = req.get(url2)
         html = request.text.lower()
         soup = BeautifulSoup(html, 'html.parser')
-        text = get_text(soup)
+        try:
+            text = get_text(soup)
+        except:
+            text = 'NaN'
         date = get_date(soup)
         views = get_views(soup)
         message_data.append([url2 , text , date , views])
