@@ -1,0 +1,10 @@
+pandas
+requests
+pyvis
+tqdm
+aiohttp
+beautifulsoup4
+spacy
+####MANUAL
+spacy download en_core_web_sm
+BERTopic
