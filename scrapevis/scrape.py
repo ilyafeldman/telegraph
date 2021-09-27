@@ -1,11 +1,11 @@
 from asyncio.tasks import sleep
 from os import wait
+from numpy import source
 import requests as req , re , pandas as pd , aiohttp , asyncio
 from tqdm.asyncio import trange, tqdm
 from tqdm import tqdm
 from bs4 import BeautifulSoup
 from random import randint
-from time import sleep
 
 exception_list = ['durov', 'username', 'telegram', 'communityrules', 'jobsbot', 'antiscam', 'tandroidapk', 'botfather', 'quizbot']
 
@@ -16,19 +16,18 @@ def connect(source): # returns an html page of a channel
     print('connect' , source)
     return html
 
-def targets(html , source): # returns a source-target dataframe per channel
+def get_targets(soup , source): # returns a source-target dataframe per channel
+    html = str(soup)
     regex = re.compile(r'href=.https://t.me/\w+')
     data = []
     for target in regex.findall(html):
         target = target.rsplit('/' , 1)[1]
         if target.lower() != source.lower():
             if target.lower() not in exception_list:
-                data.append([source.lower(), target.lower()])
+                data.append([source.lower() , target.lower()])
             else:
                 print('exception')
-    edge_df = pd.DataFrame(data , columns=['source', 'target'])
-    print('targets' , source)
-    return edge_df
+    return data
 
 def getsize(html , source): #returns a number of subscribers of a channel 
     regex = re.compile(r'class=.counter_value.>[^<]+')
@@ -54,7 +53,7 @@ def convert_str_to_number(x): # converts a '9.0K' type string to '9000' integer
 def first_run(source , scrolls): # actually runs the functions needed for first cirlce targets
     if source[-3:].lower() != 'bot':
         html = connect(source , scrolls)
-        edge_df = targets(html , source)
+        edge_df = get_targets(html , source)
         size = getsize(html , source)
         edge_df['source_node_size'] = size
     #edge_df['edge_size'] = edge_df.groupby(['target'])['source'].transform('count')
@@ -98,14 +97,15 @@ def last_message_url(html , source): # returns url info needed to iterate on mes
     url = url[1 : : ]
     return url , last_id
 
-def get_text(soup): #used in get_message_info
+def get_text(soup): #used in get_message_info to get message's text
     try:
         message_text = soup.find(class_= ['tgme_widget_message_text' , 'js-message_text']).text
         message_text = str(message_text).replace('\n', ' ')
         return message_text
     except:
         return ''
-def get_date(soup): #used in get_message_info
+        
+def get_date(soup): #used in get_message_info to get message's publish date
     try:
         message_date = soup.find('time' , class_ = 'datetime')
         message_date = message_date['datetime']
@@ -113,7 +113,7 @@ def get_date(soup): #used in get_message_info
     except:
         return ''
 
-def get_views(soup): #used in get_message_info
+def get_views(soup): #used in get_message_info to get message's view count
     try:
         message_views = soup.find(class_= 'tgme_widget_message_views').text
         message_views = convert_str_to_number(message_views)
@@ -121,7 +121,7 @@ def get_views(soup): #used in get_message_info
     except:
         return ''
 
-def link_list(url , last_id , limit):
+def link_list(url , last_id , limit): #gets links to all the channel's messages
     limit = last_id - limit
     if limit < 1:
         limit = 1
@@ -131,15 +131,20 @@ def link_list(url , last_id , limit):
         links.append(url2)
     return links
 
-async def get_message_info(url , session , flag):
+def lockcheck(soup): #used to check if telegram restricted access to the site
+    if soup.find(class_= 'tgme_widget_message_error') != None:
+        return True
+    else:
+        return False
+
+async def get_message_info(url , session , flag , source):
     message_data = []
+    edge_data =[]
     async with session.get(url , ssl=False) as response:
-        #await sleep(randint(1,2))
         html = await response.text()
     soup = BeautifulSoup(html, 'html.parser')
     if lockcheck(soup) == True:
         sleeptime = randint(5,25)
-        #print("sleeping for " , sleeptime , " seconds")
         await asyncio.sleep(sleeptime)
         flag.set()
     else:
@@ -147,37 +152,39 @@ async def get_message_info(url , session , flag):
         text = get_text(soup)
         date = get_date(soup)
         views = get_views(soup)
-        message_data.append([url , text , date , views])
-    return message_data
+        message_data = [url , text , date , views]
+        edge_data = get_targets(soup , source)
+    return message_data , edge_data
 
-async def get_message_info_sem(url , session , sem , flag):
+async def get_message_info_sem(url , session , sem , flag , source):
     async with sem:
-        return await get_message_info(url , session , flag)
+        return await get_message_info(url , session , flag , source)
 
 async def get_data(source , limit):
-    url , last_id = last_message_url(connect(source) , source)
+    html = connect(source)
+    url , last_id = last_message_url(html , source)
     links = link_list(url , last_id , limit)
     sem = asyncio.Semaphore(3)
     flag = asyncio.Event()
     async with aiohttp.ClientSession() as session:
         tasks = []
-        messages_data = []
+        total_messages_data = []
+        total_edge_data = []
         for link in links:
-            task = asyncio.ensure_future(get_message_info_sem(link , session , sem , flag))
+            task = asyncio.ensure_future(get_message_info_sem(link , session , sem , flag ,source))
             tasks.append(task)
         for f in tqdm(asyncio.as_completed(tasks) , total=len(tasks)):
             await flag.wait()
-            messages_data.append(await f)
-    messages_data = [val for sublist in messages_data for val in sublist]
-    data_df = pd.DataFrame(messages_data , columns=['link' , 'text' , 'date' , 'views'])
+            message_data , edge_data = await f
+            total_messages_data.append(message_data)
+            total_edge_data.append(edge_data)
+    data_df = pd.DataFrame(total_messages_data , columns=['link' , 'text' , 'date' , 'views'])
+    edge_df = pd.DataFrame(total_edge_data)
     nan_value = float("NaN")
     data_df.replace("", nan_value, inplace=True)
     data_df.dropna(inplace=True)
     data_df = data_df.drop_duplicates(subset='text')
-    return data_df
+    return data_df , edge_df
 
-def lockcheck(soup):
-    if soup.find(class_= 'tgme_widget_message_error') != None:
-        return True
-    else:
-        return False
+data_df , edge_df = asyncio.run(get_data('bnetanyahu' , 40))
+print(data_df , edge_df)
