@@ -179,12 +179,10 @@ async def get_data(source , limit):
             total_messages_data.append(message_data)
             total_edge_data.append(edge_data)
     data_df = pd.DataFrame(total_messages_data , columns=['link' , 'text' , 'date' , 'views'])
-    edge_df = pd.DataFrame(total_edge_data)
+    total_edge_data = [val for sublist in total_edge_data for val in sublist]
+    edge_df = pd.DataFrame(total_edge_data , columns=['source' , 'target'])
     nan_value = float("NaN")
     data_df.replace("", nan_value, inplace=True)
     data_df.dropna(inplace=True)
     data_df = data_df.drop_duplicates(subset='text')
     return data_df , edge_df
-
-data_df , edge_df = asyncio.run(get_data('bnetanyahu' , 40))
-print(data_df , edge_df)
