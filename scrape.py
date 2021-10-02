@@ -173,9 +173,9 @@ async def get_data(source , limit):
         for link in links:
             task = asyncio.ensure_future(get_message_info_sem(link , session , sem , flag ,source))
             tasks.append(task)
-        for f in tqdm(asyncio.as_completed(tasks) , total=len(tasks)):
+        for t in tqdm(asyncio.as_completed(tasks) , total=len(tasks)):
             await flag.wait()
-            message_data , edge_data = await f
+            message_data , edge_data = await t
             total_messages_data.append(message_data)
             total_edge_data.append(edge_data)
     data_df = pd.DataFrame(total_messages_data , columns=['link' , 'text' , 'date' , 'views'])
