@@ -1,5 +1,6 @@
 import requests as req , re , pandas as pd
 from pyvis.network import Network
+import networkx as nx
 
 def connect(source):
     url = 'https://t.me/s/' + source
@@ -78,10 +79,10 @@ def loop(df , i , start_channel_name, iter_number):
         i += 1
         print('iteration' , i)
         loop(df , i , start_channel_name, iter)
-        return
-    else: return "finished"
+        return df
+    else: return df
 
-def create_graph(edge_df , iterations_number , channel_name):
+def create_graph(edge_df, iterations_number, channel_name):
     got_net = Network(height='750px', width='100%', bgcolor='#222222', font_color='whitw')
     edge_data = zip(edge_df['source'], edge_df['target'], edge_df['edge_size'] , edge_df['source_node_size'])
     for row in edge_data:
@@ -99,8 +100,20 @@ def create_graph(edge_df , iterations_number , channel_name):
     print('graph ready')
     return
 
+def create_nx_graph(edge_df):
+    nx_graph = nx.from_pandas_edgelist(edge_df)
+    nt = Network('500px', '500px')
+    nt.from_nx(nx_graph)
+    nt.show('nx.html')
+    return 
+
+
+
+
 channel_name = input("Enter the channel name: ")
 iterations_number = int(input("Enter the number of iterations: "))
 
 df = loop(finals(channel_name) , 0 , channel_name, iterations_number)
-create_graph(df , iterations_number , channel_name)
+print(df)
+#create_graph(df , iterations_number , channel_name)
+create_nx_graph(df)
